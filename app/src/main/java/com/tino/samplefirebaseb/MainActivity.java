@@ -1,6 +1,9 @@
 package com.tino.samplefirebaseb;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -12,9 +15,18 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.tino.samplefirebaseb.R;
 
+import java.util.ArrayList;
+
 public class MainActivity extends AppCompatActivity {
-    FirebaseDatabase database = FirebaseDatabase.getInstance();
-    DatabaseReference myRef = database.getReference("message");
+
+    private RecyclerView recyclerView;
+    private RecyclerView.Adapter adapter;
+    private RecyclerView.LayoutManager layoutManager;
+    private ArrayList<User> arrayList;
+
+    private FirebaseDatabase database;
+    private DatabaseReference databaseReference;
+
     public static final String TAG = "MainActivity";
 
 
@@ -24,22 +36,36 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        myRef.setValue("Hello, World!");
+        recyclerView = findViewById((R.id.recyclerView));
+        recyclerView.setHasFixedSize(true);
+        layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+        arrayList = new ArrayList<>();
 
-        myRef.addValueEventListener(new ValueEventListener() {
+        database = FirebaseDatabase.getInstance();
+        databaseReference = database.getReference("User");
+        databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                // This method is called once with the initial value and again
-                // whenever data at this location is updated.
-                String value = dataSnapshot.getValue(String.class);
-                Log.d(TAG, "Value is: " + value);
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                arrayList.clear();
+
+                for(DataSnapshot snapshot : dataSnapshot.getChildren()){
+                    User user = snapshot.getValue(User.class);
+                    arrayList.add(user);
+                }
+                adapter.notifyDataSetChanged();
             }
 
             @Override
-            public void onCancelled(DatabaseError error) {
-                // Failed to read value
-                Log.w(TAG, "Failed to read value.", error.toException());
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, String.valueOf(databaseError.toException()));
+
             }
         });
+
+        adapter = new CustomAdapter(arrayList,this);
+        recyclerView.setAdapter(adapter);
+
+
     }
 }
